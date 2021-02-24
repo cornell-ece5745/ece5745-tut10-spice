@@ -27,7 +27,7 @@ analysis you would like to perform on your circuit. You can learn more
 about SPICE decks in Chapter 8 of Weste & Harris. You can also look at
 the ngspice documentation:
 
- - http://ngspice.sourceforge.net/docs/ngspice-30-manual.pdf
+ - http://ngspice.sourceforge.net/docs/ngspice-34-manual.pdf
 
 The first step is to source the setup script, clone this repository from
 GitHub, and define an environment variable to keep track of the top

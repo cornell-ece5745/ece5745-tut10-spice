@@ -55,7 +55,7 @@ transistor discharging a load capacitance.
     .param  VDD='1.1V'
     .option scale=450nm
     .temp   70
-    .inc "/classes/ece5745/install/adk-pkgs/freepdk-45nm/view-stdview/pdk-models.sp"
+    .inc "/classes/ece5745/install/adk-pkgs/freepdk-45nm/stdview/pdk-models.sp"
 
     * Supply Voltage Source
     * ------------------------------------------------------------------------
@@ -101,7 +101,7 @@ and models:
     .param  VDD='1.1V'
     .option scale=450nm
     .temp   70
-    .inc "/classes/ece5745/install/adk-pkgs/freepdk-45nm/view-stdview/pdk-models.sp"
+    .inc "/classes/ece5745/install/adk-pkgs/freepdk-45nm/stdview/pdk-models.sp"
 
 We create a constant named VDD which is the supply voltage we want to use
 in our circuit. Note that VDD is -not- a voltage source or a node in our

@@ -1,13 +1,12 @@
-* MMOS Charging Capacitor
+* Simple inverter simulation
 * ========================================================================
 
 * Parameters and Models
 * ------------------------------------------------------------------------
 
-.param  VDD='1.1V'
-.option scale=450nm
-.temp   70
-.inc "/classes/ece5745/install/adk-pkgs/freepdk-45nm/view-standard/pdk-models.sp"
+.param VDD='1.1V'
+.temp  25
+.inc   "/classes/ece5745/install/adk-pkgs/freepdk-45nm/stdview/pdk-models.sp"
 
 * Supply Voltage Source
 * ------------------------------------------------------------------------
@@ -17,31 +16,41 @@ Vdd vdd gnd VDD
 * Transistors
 * ------------------------------------------------------------------------
 
-*  src   gate drain body type
-M1 vdd   in   out   gnd  NMOS_VTL W=1 L=0.1
+*  src  gate drain body type
+M1 vdd  in   out   vdd  PMOS_VTL W=0.900um L=0.045um
+M2 gnd  in   out   gnd  NMOS_VTL W=0.450um L=0.045um
 
 * Output Load
 * ------------------------------------------------------------------------
 
-CLoad out gnd 12fF
+Cload out gnd 7fF
 
 * Input Signals
 * ------------------------------------------------------------------------
 
-Vin in gnd pwl( 0ns 0V 0.5ns 0V 0.7ns VDD )
+A1 [in_] inv_source
+.model inv_source d_source (input_file="inv-source.txt")
+
+Ain [in_] [in] dac_in
+.model dac_in dac_bridge (out_low=0V out_high='VDD' t_rise=0.2ns t_fall=0.2ns)
 
 * Analysis
 * ------------------------------------------------------------------------
 
-.ic   V(out)=0V
-.tran 0.01ns 2.5ns
+.ic   V(out)=VDD
+.tran 0.01ns 3ns
 
 .control
 run
 set color0=white
 set color1=black
 set xbrushwidth=2
-plot V(in) V(out) V(in)-V(out) V(vdd)-V(out)
+plot V(in) V(out)
 .endc
 
+.measure tran tpdr trig v(in) val='VDD/2' fall=1 targ v(out) val='VDD/2' rise=1
+.measure tran tpdf trig v(in) val='VDD/2' rise=1 targ v(out) val='VDD/2' fall=1
+.measure tran tpd param='(tpdr+tpdf)/2'
+
 .end
+

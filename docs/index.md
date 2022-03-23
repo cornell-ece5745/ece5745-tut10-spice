@@ -332,11 +332,101 @@ the actual waveforms to see if the output has time to go full rail. If
 not, you need to increase the time between input transitions to make an
 accurate estimate of the propagation delay.
 
-Creating these voltage sources can be very tedious, especially when we
-want to drive multiple inputs. We can take advantage of ngspice's support
-for mixed-signal analog/digital simulation to simplify the task of
-creating many digital input values. Take a look at the SPICE deck in
-`inv-dsource-sim.sp` to see a different way of generating input sources:
+Let's dig a little deeper. Notice that the rise time is not equal to the
+fall time for our inverter. The rise time is 10.4ps but the fall time is
+24.1ps. We have made the PMOS twice the width of the NMOS (i.e., the PMOS
+is 900nm wide while the NMOS is 450nm wide), so why aren't the rise and
+fall times equal? Part of the reason is the PMOS mobility is not exactly
+half the NMOS mobility in this technology as well as many other second
+order effects. Change the size of PMOS so it is only 1.5x as large as the
+NMOS like this:
+
+    *  src  gate drain body type
+    M1 vdd  in   out   vdd  PMOS_VTL W=0.675um L=0.045um
+    M2 gnd  in   out   gnd  NMOS_VTL W=0.450um L=0.045um
+
+Rerun the simulation:
+
+    % cd $TOPDIR/sim
+    % ngspice inv-sim.sp
+    ...
+    tpdr = 1.940778e-11 targ = 2.019408e-09 trig = 2.000000e-09
+    tpdf = 1.812324e-11 targ = 1.018123e-09 trig = 1.000000e-09
+    tpd  = 1.87655e-11
+
+You can now see the rise and fall times are much closer to being equal.
+Of course this begs the question, "Why is it important to have equal rise
+and fall times?". To some degree this is a design decision. It is
+certainly possible to have unequal rise and fall times, and indeed this
+can also often lead to better area/power or enabling making a critical
+transition faster (at the expense of the other transition). However, the
+largest motivation for equal rise and fall times is that it maximizes the
+noise margins. To understand this, let's use ngspice to analyze the DC
+transfer curve of an inverter. Take a look at the SPICE deck in
+`inv-sim-xfer.sp` which contains the same canonical minimum sized
+inverter but with DC instead of transient analysis:
+
+    .dc Vin 0 'VDD' 0.01
+
+Here is the resulting DC transfer curve showing Vin vs Vout (after I
+manually annotated the noise margins):
+
+![](assets/fig/inv-xfer-curve-pmos625-nmos450.png)
+
+Recall that the noise margins are with respect to where the slope of the
+transfer curve is -1 (i.e., maximum gain). V_IL is the maximum low input
+voltage and V_IH is the minimum high input voltage. V_OL is the maximum
+low output voltage and V_OH is the minimum high output voltage. The noise
+margins are NM_H = V_OH - V_IH and NM_L = V_IL - V_OL and we want these
+noise margins to be as large as possible. With large noise margins we can
+tolerate noise on the input without it propagating through the inverter
+and causing it to switch the output. For this example the noise margins
+are roughly equal at 0.3V:
+
+    V_IL = 0.45V
+    V_IH = 0.65V
+    V_OL = 0.15V
+    V_OH = 0.95V
+    NM_H = V_OH - V_IH = 0.95V - 0.65V = 0.31V
+    NM_L = V_IL - V_OL = 0.45V - 0.15V = 0.30V
+
+Now the problem with unequal rise and fall times is it means we
+essentially skew the noise margins. We make one noise larger but the
+other noise margin smaller. Try rerunning the simulation, but this time
+make the PMOS the same size as the NMOS like this:
+
+    *  src  gate drain body type
+    M1 vdd  in   out   vdd  PMOS_VTL W=0.450um L=0.045um
+    M2 gnd  in   out   gnd  NMOS_VTL W=0.450um L=0.045um
+
+Rerun the simulation and you should see something like the following
+(after I manually annotated the noise margins):
+
+![](assets/fig/inv-xfer-curve-pmos450-nmos450.png)
+
+And here are roughly the corresponding noise margins:
+
+    V_IL = 0.35V
+    V_IH = 0.48V
+    V_OL = 0.15V
+    V_OH = 0.98V
+    NM_H = V_OH - V_IH = 0.98V - 0.48V = 0.5V
+    NM_L = V_IL - V_OL = 0.35V - 0.15V = 0.2V
+
+Notice how the low noise margin has gone from 0.3V to 0.2V. This means
+the gate is now much more sensitive to noise. So in general we perfer
+equal rise and fall times becuase it improves our noise margins (and also
+simplifies our analysis).
+
+**To Do On Your Own:** Make the NMOS twice as big as the PMOS and observe
+how this impacts the noise margins.
+
+Creating voltage sources to change the inputs can be very tedious,
+especially when we want to drive multiple inputs. We can take advantage
+of ngspice's support for mixed-signal analog/digital simulation to
+simplify the task of creating many digital input values. Take a look at
+the SPICE deck in `inv-dsource-sim.sp` to see a different way of
+generating input sources:
 
     A1 [in_] inv_source
     .model inv_source d_source (input_file="inv-source.txt")
